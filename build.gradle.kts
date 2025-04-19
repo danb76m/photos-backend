@@ -35,6 +35,8 @@ dependencies {
 	implementation("org.imgscalr:imgscalr-lib:4.2")
 
 	implementation("me.paulschwarz:spring-dotenv:4.0.0")
+
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
 }
 
 tasks.withType<Test> {

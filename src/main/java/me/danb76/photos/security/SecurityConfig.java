@@ -1,5 +1,6 @@
 package me.danb76.photos.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -12,26 +13,48 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.Collections;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @EnableWebSecurity
 @Configuration
 public class SecurityConfig {
+    @Value("${admin.username}")
+    private String adminUsername;
+
+    @Value("${admin.password}")
+    private String adminPassword;
+
+    @Value("${web_url}")
+    private static String webUrl;
+
+    @Bean
+    @ConditionalOnMissingBean(UserDetailsService.class)
+    InMemoryUserDetailsManager inMemoryUserDetailsManager(PasswordEncoder passwordEncoder) {
+        String encodedPassword = passwordEncoder.encode(adminPassword);
+        return new InMemoryUserDetailsManager(
+                User.withUsername(adminUsername).password(encodedPassword).roles("ADMIN").build()
+        );
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
     @Configuration
     @Profile("development")
     public static class DevelopmentSecurityConfig {
-        @Bean
-        @ConditionalOnMissingBean(UserDetailsService.class)
-        InMemoryUserDetailsManager inMemoryUserDetailsManager() {
-            String generatedPassword = "{noop}admin";
-            return new InMemoryUserDetailsManager(
-                    User.withUsername("user").password(generatedPassword).roles("ADMIN").build()
-            );
-        }
 
         @Bean
         @ConditionalOnMissingBean(AuthenticationEventPublisher.class)
@@ -41,7 +64,9 @@ public class SecurityConfig {
 
         @Bean
         SecurityFilterChain configure(HttpSecurity http) throws Exception {
-            http.csrf(AbstractHttpConfigurer::disable)
+            http
+                    .csrf(AbstractHttpConfigurer::disable)
+                    .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .authorizeHttpRequests(auth ->
                             auth
                                     .requestMatchers("/categories/all").permitAll()
@@ -49,9 +74,25 @@ public class SecurityConfig {
                                     .requestMatchers("/upload/**").hasRole("ADMIN")
                                     .requestMatchers("/jobs/**").hasRole("ADMIN")
                                     .requestMatchers("/photos/category/**").permitAll()
+                                    .requestMatchers("/photos/**").permitAll()
+                                    .requestMatchers("/photos/delete/**").hasRole("ADMIN")
+                                    .requestMatchers("/actuator/**").hasRole("ADMIN")
                     )
                     .httpBasic(withDefaults());
             return http.build();
+        }
+
+        @Bean
+        CorsConfigurationSource corsConfigurationSource() {
+            CorsConfiguration configuration = new CorsConfiguration();
+            configuration.setAllowedOrigins(Collections.singletonList(webUrl));
+            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+            configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+            configuration.setAllowCredentials(true);
+
+            UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+            source.registerCorsConfiguration("/**", configuration);
+            return source;
         }
     }
 }
