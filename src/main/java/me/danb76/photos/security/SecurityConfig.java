@@ -1,5 +1,8 @@
 package me.danb76.photos.security;
 
+import me.danb76.photos.service.JobsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.ApplicationEventPublisher;
@@ -29,14 +32,16 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @EnableWebSecurity
 @Configuration
 public class SecurityConfig {
+    private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
+
     @Value("${admin.username}")
     private String adminUsername;
 
     @Value("${admin.password}")
     private String adminPassword;
 
-    @Value("${web_url}")
-    private static String webUrl;
+    @Value("${web.url}")
+    private String webUrl;
 
     @Bean
     @ConditionalOnMissingBean(UserDetailsService.class)
@@ -54,7 +59,7 @@ public class SecurityConfig {
 
     @Configuration
     @Profile("development")
-    public static class DevelopmentSecurityConfig {
+    public class DevelopmentSecurityConfig {
 
         @Bean
         @ConditionalOnMissingBean(AuthenticationEventPublisher.class)
@@ -84,8 +89,9 @@ public class SecurityConfig {
 
         @Bean
         CorsConfigurationSource corsConfigurationSource() {
+            logger.info("WEB URL === {}", webUrl);
             CorsConfiguration configuration = new CorsConfiguration();
-            configuration.setAllowedOrigins(Collections.singletonList(webUrl));
+            configuration.setAllowedOrigins(Arrays.asList(webUrl));
             configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
             configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
             configuration.setAllowCredentials(true);
