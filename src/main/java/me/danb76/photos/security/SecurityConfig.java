@@ -46,7 +46,7 @@ public class SecurityConfig {
     @Bean
     @ConditionalOnMissingBean(UserDetailsService.class)
     InMemoryUserDetailsManager inMemoryUserDetailsManager(PasswordEncoder passwordEncoder) {
-        String encodedPassword = passwordEncoder.encode(adminPassword);
+        String encodedPassword = passwordEncoder.encode("{bcrypt}" + adminPassword);
         return new InMemoryUserDetailsManager(
                 User.withUsername(adminUsername).password(encodedPassword).roles("ADMIN").build()
         );
@@ -56,6 +56,8 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
+    // Development
 
     @Configuration
     @Profile("development")
@@ -100,6 +102,8 @@ public class SecurityConfig {
             return source;
         }
     }
+
+    // Production
 
     @Configuration
     @Profile("production")
