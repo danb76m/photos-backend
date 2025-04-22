@@ -60,7 +60,6 @@ public class SecurityConfig {
     @Configuration
     @Profile("development")
     public class DevelopmentSecurityConfig {
-
         @Bean
         @ConditionalOnMissingBean(AuthenticationEventPublisher.class)
         DefaultAuthenticationEventPublisher defaultAuthenticationEventPublisher(ApplicationEventPublisher delegate) {
@@ -106,23 +105,14 @@ public class SecurityConfig {
     @Profile("production")
     public class ProductionSecurityConfig {
         @Bean
-        CorsConfigurationSource corsConfigurationSource() {
-            logger.info("Production Web URL for CORS === {}", webUrl);
-            CorsConfiguration configuration = new CorsConfiguration();
-            configuration.setAllowedOrigins(Arrays.asList(webUrl));
-            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-            configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
-            configuration.setAllowCredentials(true);
-
-            UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-            source.registerCorsConfiguration("/**", configuration);
-            return source;
+        @ConditionalOnMissingBean(AuthenticationEventPublisher.class)
+        DefaultAuthenticationEventPublisher defaultAuthenticationEventPublisher(ApplicationEventPublisher delegate) {
+            return new DefaultAuthenticationEventPublisher(delegate);
         }
 
         @Bean
         SecurityFilterChain configure(HttpSecurity http) throws Exception {
             http
-                    .csrf(withDefaults())
                     .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .authorizeHttpRequests(auth ->
                             auth
@@ -133,16 +123,26 @@ public class SecurityConfig {
                                     .requestMatchers("/api/photos/category/**").permitAll()
                                     .requestMatchers("/api/photos/**").permitAll()
                                     .requestMatchers("/api/photos/delete/**").hasRole("ADMIN")
-                                    .requestMatchers("/api/actuator/**").hasRole("ADMIN")
+                                    .requestMatchers("/actuator/**").hasRole("ADMIN")
                     )
                     .httpBasic(withDefaults());
             return http.build();
         }
+
+        @Bean
+        CorsConfigurationSource corsConfigurationSource() {
+            logger.info("WEB URL === {}", webUrl);
+            logger.info("We're in production now!");
+            CorsConfiguration configuration = new CorsConfiguration();
+            configuration.setAllowedOrigins(Arrays.asList(webUrl));
+            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+            configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+            configuration.setAllowCredentials(true);
+
+            UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+            source.registerCorsConfiguration("/**", configuration);
+            return source;
+        }
     }
 
-    @Bean
-    @ConditionalOnMissingBean(AuthenticationEventPublisher.class)
-    DefaultAuthenticationEventPublisher defaultAuthenticationEventPublisher(ApplicationEventPublisher delegate) {
-        return new DefaultAuthenticationEventPublisher(delegate);
-    }
 }
