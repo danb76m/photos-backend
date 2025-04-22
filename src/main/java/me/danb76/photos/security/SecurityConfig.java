@@ -111,7 +111,15 @@ public class SecurityConfig {
                     .csrf(withDefaults())
                     .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .authorizeHttpRequests(auth ->
-                            auth.anyRequest().authenticated()
+                            auth
+                                    .requestMatchers("/categories/all").permitAll()
+                                    .requestMatchers("/categories/**").hasRole("ADMIN")
+                                    .requestMatchers("/upload/**").hasRole("ADMIN")
+                                    .requestMatchers("/jobs/**").hasRole("ADMIN")
+                                    .requestMatchers("/photos/category/**").permitAll()
+                                    .requestMatchers("/photos/**").permitAll()
+                                    .requestMatchers("/photos/delete/**").hasRole("ADMIN")
+                                    .requestMatchers("/actuator/**").hasRole("ADMIN")
                     )
                     .httpBasic(withDefaults());
             return http.build();
