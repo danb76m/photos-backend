@@ -106,6 +106,20 @@ public class SecurityConfig {
     @Profile("production")
     public class ProductionSecurityConfig {
         @Bean
+        CorsConfigurationSource corsConfigurationSource() {
+            logger.info("Production Web URL for CORS === {}", webUrl);
+            CorsConfiguration configuration = new CorsConfiguration();
+            configuration.setAllowedOrigins(Arrays.asList(webUrl));
+            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+            configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+            configuration.setAllowCredentials(true);
+
+            UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+            source.registerCorsConfiguration("/**", configuration);
+            return source;
+        }
+
+        @Bean
         SecurityFilterChain configure(HttpSecurity http) throws Exception {
             http
                     .csrf(withDefaults())
@@ -123,20 +137,6 @@ public class SecurityConfig {
                     )
                     .httpBasic(withDefaults());
             return http.build();
-        }
-
-        @Bean
-        CorsConfigurationSource corsConfigurationSource() {
-            logger.info("Production Web URL for CORS === {}", webUrl);
-            CorsConfiguration configuration = new CorsConfiguration();
-            configuration.setAllowedOrigins(Arrays.asList(webUrl));
-            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-            configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
-            configuration.setAllowCredentials(true);
-
-            UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-            source.registerCorsConfiguration("/**", configuration);
-            return source;
         }
     }
 
