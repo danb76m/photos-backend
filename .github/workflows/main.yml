@@ -43,5 +43,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/danb76m/photos-backend:latest
+            ghcr.io/danb76m/photos-backend:${{ github.sha }}

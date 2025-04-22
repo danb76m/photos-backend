@@ -101,4 +101,40 @@ public class SecurityConfig {
             return source;
         }
     }
+
+    @Configuration
+    @Profile("production")
+    public class ProductionSecurityConfig {
+        @Bean
+        SecurityFilterChain configure(HttpSecurity http) throws Exception {
+            http
+                    .csrf(withDefaults())
+                    .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                    .authorizeHttpRequests(auth ->
+                            auth.anyRequest().authenticated()
+                    )
+                    .httpBasic(withDefaults());
+            return http.build();
+        }
+
+        @Bean
+        CorsConfigurationSource corsConfigurationSource() {
+            logger.info("Production Web URL for CORS === {}", webUrl);
+            CorsConfiguration configuration = new CorsConfiguration();
+            configuration.setAllowedOrigins(Arrays.asList(webUrl));
+            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+            configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+            configuration.setAllowCredentials(true);
+
+            UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+            source.registerCorsConfiguration("/**", configuration);
+            return source;
+        }
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(AuthenticationEventPublisher.class)
+    DefaultAuthenticationEventPublisher defaultAuthenticationEventPublisher(ApplicationEventPublisher delegate) {
+        return new DefaultAuthenticationEventPublisher(delegate);
+    }
 }
