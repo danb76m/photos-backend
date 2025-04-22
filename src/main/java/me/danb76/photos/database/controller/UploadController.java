@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Controller
-@RequestMapping(path = "/upload")
+@RequestMapping(path = "/api/upload/")
 @RestController
 public class UploadController {
     public static final String UPLOADS_BUCKET = "uploads";

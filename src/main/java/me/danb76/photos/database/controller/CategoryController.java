@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Controller
-@RequestMapping(path = "/categories")
+@RequestMapping(path = "/api/categories/")
 @RestController
 public class CategoryController {
     private static final Logger logger = LoggerFactory.getLogger(CategoryController.class);

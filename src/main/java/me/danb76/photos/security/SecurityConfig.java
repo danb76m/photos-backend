@@ -74,14 +74,14 @@ public class SecurityConfig {
                     .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .authorizeHttpRequests(auth ->
                             auth
-                                    .requestMatchers("/categories/all").permitAll()
-                                    .requestMatchers("/categories/**").hasRole("ADMIN")
-                                    .requestMatchers("/upload/**").hasRole("ADMIN")
-                                    .requestMatchers("/jobs/**").hasRole("ADMIN")
-                                    .requestMatchers("/photos/category/**").permitAll()
-                                    .requestMatchers("/photos/**").permitAll()
-                                    .requestMatchers("/photos/delete/**").hasRole("ADMIN")
-                                    .requestMatchers("/actuator/**").hasRole("ADMIN")
+                                    .requestMatchers("/api/categories/all").permitAll()
+                                    .requestMatchers("/api/categories/**").hasRole("ADMIN")
+                                    .requestMatchers("/api/upload/**").hasRole("ADMIN")
+                                    .requestMatchers("/api/jobs/**").hasRole("ADMIN")
+                                    .requestMatchers("/api/photos/category/**").permitAll()
+                                    .requestMatchers("/api/photos/**").permitAll()
+                                    .requestMatchers("/api/photos/delete/**").hasRole("ADMIN")
+                                    .requestMatchers("/api/actuator/**").hasRole("ADMIN")
                     )
                     .httpBasic(withDefaults());
             return http.build();
@@ -112,14 +112,14 @@ public class SecurityConfig {
                     .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .authorizeHttpRequests(auth ->
                             auth
-                                    .requestMatchers("/categories/all").permitAll()
-                                    .requestMatchers("/categories/**").hasRole("ADMIN")
-                                    .requestMatchers("/upload/**").hasRole("ADMIN")
-                                    .requestMatchers("/jobs/**").hasRole("ADMIN")
-                                    .requestMatchers("/photos/category/**").permitAll()
-                                    .requestMatchers("/photos/**").permitAll()
-                                    .requestMatchers("/photos/delete/**").hasRole("ADMIN")
-                                    .requestMatchers("/actuator/**").hasRole("ADMIN")
+                                    .requestMatchers("/api/categories/all").permitAll()
+                                    .requestMatchers("/api/categories/**").hasRole("ADMIN")
+                                    .requestMatchers("/api/upload/**").hasRole("ADMIN")
+                                    .requestMatchers("/api/jobs/**").hasRole("ADMIN")
+                                    .requestMatchers("/api/photos/category/**").permitAll()
+                                    .requestMatchers("/api/photos/**").permitAll()
+                                    .requestMatchers("/api/photos/delete/**").hasRole("ADMIN")
+                                    .requestMatchers("/api/actuator/**").hasRole("ADMIN")
                     )
                     .httpBasic(withDefaults());
             return http.build();

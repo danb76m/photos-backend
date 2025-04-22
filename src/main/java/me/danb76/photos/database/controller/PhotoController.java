@@ -48,7 +48,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Controller
-@RequestMapping(path = "/photos")
+@RequestMapping(path = "/photos/")
 @RestController
 public class PhotoController {
     private static final Logger logger = LoggerFactory.getLogger(JobsService.class);

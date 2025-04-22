@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Controller
-@RequestMapping(path = "/jobs")
+@RequestMapping(path = "/api/jobs/")
 @RestController
 public class JobsController {
     @Autowired
