@@ -25,7 +25,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -46,7 +45,7 @@ public class SecurityConfig {
     @Bean
     @ConditionalOnMissingBean(UserDetailsService.class)
     InMemoryUserDetailsManager inMemoryUserDetailsManager(PasswordEncoder passwordEncoder) {
-        String encodedPassword = passwordEncoder.encode("{bcrypt}" + adminPassword);
+        String encodedPassword = passwordEncoder.encode(adminPassword);
         return new InMemoryUserDetailsManager(
                 User.withUsername(adminUsername).password(encodedPassword).roles("ADMIN").build()
         );
