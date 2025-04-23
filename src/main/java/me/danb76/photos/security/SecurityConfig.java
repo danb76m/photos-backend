@@ -83,6 +83,7 @@ public class SecurityConfig {
                                     .requestMatchers("/api/photos/**").permitAll()
                                     .requestMatchers("/api/photos/delete/**").hasRole("ADMIN")
                                     .requestMatchers("/api/actuator/**").hasRole("ADMIN")
+                                    .anyRequest().authenticated()
                     )
                     .httpBasic(withDefaults());
             return http.build();
@@ -117,6 +118,7 @@ public class SecurityConfig {
         @Bean
         SecurityFilterChain configure(HttpSecurity http) throws Exception {
             http
+                    .csrf(AbstractHttpConfigurer::disable)
                     .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                     .authorizeHttpRequests(auth ->
                             auth
@@ -127,7 +129,8 @@ public class SecurityConfig {
                                     .requestMatchers("/api/photos/category/**").permitAll()
                                     .requestMatchers("/api/photos/**").permitAll()
                                     .requestMatchers("/api/photos/delete/**").hasRole("ADMIN")
-                                    .requestMatchers("/actuator/**").hasRole("ADMIN")
+                                    .requestMatchers("/api/actuator/**").hasRole("ADMIN")
+                                    .anyRequest().authenticated()
                     )
                     .httpBasic(withDefaults());
             return http.build();
