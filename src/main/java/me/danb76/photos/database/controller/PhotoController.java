@@ -205,13 +205,12 @@ public class PhotoController {
                 .object(objectName)
                 .build())) {
 
-            // Use TwelveMonkeys to read and rotate the image
             BufferedImage originalImage = ImageIO.read(getResponse);
             if (originalImage != null) {
                 BufferedImage rotatedImage = Scalr.rotate(originalImage, Scalr.Rotation.CW_90);
 
                 ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                String formatName = String.valueOf(getFileExtension(objectName));
+                String formatName = getFileExtension(objectName).orElse("jpg");
                 ImageIO.write(rotatedImage, formatName, outputStream);
                 outputStream.flush();
                 byte[] rotatedImageBytes = outputStream.toByteArray();
@@ -219,6 +218,7 @@ public class PhotoController {
                 minioClient.putObject(PutObjectArgs.builder()
                         .bucket(bucketName)
                         .object(objectName)
+                        .contentType("image/" + formatName)
                         .stream(new ByteArrayInputStream(rotatedImageBytes), rotatedImageBytes.length, -1)
                         .build());
             }
