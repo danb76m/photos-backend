@@ -34,7 +34,7 @@ import java.util.UUID;
 @RestController
 public class UploadController {
     public static final String UPLOADS_BUCKET = "uploads";
-    private static final String[] ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"};
+    private static final String[] ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "CR2"};
 
     @Value("${spring.minio.url}")
     private String minioUrl;

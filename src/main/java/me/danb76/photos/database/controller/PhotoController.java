@@ -3,6 +3,7 @@ package me.danb76.photos.database.controller;
 import io.minio.GetObjectArgs;
 import io.minio.GetObjectResponse;
 import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.InsufficientDataException;
@@ -13,6 +14,7 @@ import io.minio.errors.XmlParserException;
 import me.danb76.photos.database.repositories.PhotosRepository;
 import me.danb76.photos.database.tables.Photo;
 import me.danb76.photos.service.JobsService;
+import org.imgscalr.Scalr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -35,6 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -168,6 +172,57 @@ public class PhotoController {
         repository.delete(photo);
         response.put("success", "true");
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @PutMapping(path="/rotate/{photoId}")
+    public ResponseEntity<Map<String, String>> rotatePhoto(@PathVariable UUID photoId) {
+        Map<String, String> response = new HashMap<>();
+
+        Optional<Photo> photoOptional = repository.findById(photoId);
+        if (photoOptional.isEmpty()) return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        Photo photo = photoOptional.get();
+        String bucketName = photo.getCategory().toString();
+
+        try {
+            rotateAndOverwrite(bucketName, photo.getLowRes());
+            rotateAndOverwrite(bucketName, photo.getHighRes());
+            rotateAndOverwrite(bucketName, photo.getFullPhoto());
+
+            response.put("success", "true");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+
+        } catch (ErrorResponseException | InsufficientDataException | InternalException | InvalidKeyException |
+                 InvalidResponseException | IOException | NoSuchAlgorithmException | ServerException |
+                 XmlParserException e) {
+            response.put("minio_rotate_error", e.getMessage());
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private void rotateAndOverwrite(String bucketName, String objectName) throws IOException, ServerException, InsufficientDataException, InternalException, InvalidResponseException, InvalidKeyException, NoSuchAlgorithmException, XmlParserException, ErrorResponseException {
+        try (GetObjectResponse getResponse = minioClient.getObject(GetObjectArgs.builder()
+                .bucket(bucketName)
+                .object(objectName)
+                .build())) {
+
+            // Use TwelveMonkeys to read and rotate the image
+            BufferedImage originalImage = ImageIO.read(getResponse);
+            if (originalImage != null) {
+                BufferedImage rotatedImage = Scalr.rotate(originalImage, Scalr.Rotation.CW_90);
+
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                String formatName = String.valueOf(getFileExtension(objectName));
+                ImageIO.write(rotatedImage, formatName, outputStream);
+                outputStream.flush();
+                byte[] rotatedImageBytes = outputStream.toByteArray();
+
+                minioClient.putObject(PutObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(objectName)
+                        .stream(new ByteArrayInputStream(rotatedImageBytes), rotatedImageBytes.length, -1)
+                        .build());
+            }
+        }
     }
 
     private Optional<String> getFileExtension(String fileName) {
