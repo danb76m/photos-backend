@@ -105,7 +105,7 @@ public class JobsService {
                                 .bucket(UploadController.UPLOADS_BUCKET)
                                 .object(job.getFileName()).build());
 
-                        updateJobStatus(job, true, true, "Generated all thumbnails and copied original.");
+                        updateJobStatus(job, false, true, "Generated all thumbnails and copied original.");
                         logger.info("Successfully processed file: {} for category: {}", job.getFileName(), job.getCategory());
 
                         // TODO post to photos repository.
