@@ -10,6 +10,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 @Configuration
 public class CorsConfig {
@@ -18,10 +19,14 @@ public class CorsConfig {
     @Value("${web.url}")
     private String webUrl;
 
+    @Value("${spring.profiles.active}")
+    private String profile;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        logger.debug("Web URL {} @ Profile {}", webUrl, profile);
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(webUrl));
+        configuration.setAllowedOrigins(Collections.singletonList(webUrl));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
