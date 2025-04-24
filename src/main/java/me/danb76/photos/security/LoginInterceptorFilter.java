@@ -41,7 +41,7 @@ public class LoginInterceptorFilter extends OncePerRequestFilter {
             Object principal = authentication.getPrincipal();
             String username = (principal instanceof UserDetails) ? ((UserDetails) principal).getUsername() : principal.toString();
 
-            long failedAttempts = attemptsRepository.countFailedAttempts(ipAddress, 60 * 60 * 24 * 1000); // Consider a shorter timeframe
+            long failedAttempts = attemptsRepository.countFailedAttempts(ipAddress, 60 * 60 * 24 * 1000);
 
             if (failedAttempts >= 5) {
                 logger.warn("Blocking login for user '{}' from IP {} due to {} recent failed attempts.",
@@ -49,7 +49,7 @@ public class LoginInterceptorFilter extends OncePerRequestFilter {
                 response.sendError(429, "Too many failed login attempts. Please try again later.");
                 return;
             } else {
-                logger.info("Successful login for user '{}' from IP {}", username, ipAddress);
+                logger.info("Successful login for user '{}' from IP {} with User Agent {}", username, ipAddress, userAgent);
                 LoginAttempts attempt = new LoginAttempts();
                 attempt.setSuccess(true);
                 attempt.setIp_addr(ipAddress);
@@ -59,6 +59,6 @@ public class LoginInterceptorFilter extends OncePerRequestFilter {
             }
         }
 
-        filterChain.doFilter(request, response); // Continue the chain
+        filterChain.doFilter(request, response);
     }
 }
