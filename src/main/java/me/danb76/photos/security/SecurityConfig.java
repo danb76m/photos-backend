@@ -94,7 +94,6 @@ public class SecurityConfig {
                                 .requestMatchers("/api/categories/all").permitAll()
                                 .requestMatchers("/api/photos/category/**").permitAll()
                                 .requestMatchers("/api/photos/**").permitAll()
-                                .requestMatchers("/api/auth/protected").permitAll()
                                 .requestMatchers("/api/actuator/**").hasRole("ADMIN")
                                 .requestMatchers("/api/categories/**").hasRole("ADMIN")
                                 .requestMatchers("/api/upload/**").hasRole("ADMIN")
@@ -103,7 +102,7 @@ public class SecurityConfig {
                                 .anyRequest().authenticated()
                 )
                 .httpBasic(httpBasic -> httpBasic.authenticationEntryPoint(authenticationEntryPoint()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
                         .invalidateHttpSession(true)
