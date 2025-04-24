@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import me.danb76.photos.database.repositories.AttemptsRepository;
 import me.danb76.photos.database.tables.LoginAttempts;
-import me.danb76.photos.service.JobsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +20,7 @@ import org.springframework.security.authentication.DefaultAuthenticationEventPub
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -34,7 +34,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.cors.CorsConfiguration;
@@ -55,9 +54,6 @@ public class SecurityConfig {
     @Autowired
     private AttemptsRepository attemptsRepository;
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
-
     @Value("${admin.username}")
     private String adminUsername;
 
@@ -66,6 +62,21 @@ public class SecurityConfig {
 
     @Value("${web.url}")
     private String webUrl;
+
+    @Value("${security.maxFailedAttempts:5}")
+    private long maxFailedAttempts;
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(inMemoryUserDetailsManager(passwordEncoder()))
+                .passwordEncoder(passwordEncoder());
+        return auth.getOrBuild();
+    }
+
+    @Bean
+    public CustomAuthenticationFilter customAuthenticationFilter(AuthenticationManager authenticationManager) {
+        return new CustomAuthenticationFilter(authenticationManager, attemptsRepository, maxFailedAttempts);
+    }
 
     @EventListener
     public void authenticateFail(AuthenticationFailureBadCredentialsEvent e) {
@@ -78,11 +89,8 @@ public class SecurityConfig {
         Optional<HttpServletRequest> requestOptional = getCurrentHttpRequest();
         String finalUsername = username;
         requestOptional.ifPresent(request -> {
-            String ipAddress = request.getHeader("X-Forwarded-For");
-            if (ipAddress == null || ipAddress.isEmpty()) {
-                ipAddress = request.getRemoteAddr();
-            }
-            String userAgent = request.getHeader("User-Agent");
+            String ipAddress = Optional.ofNullable(request.getHeader("X-Forwarded-For")).orElse(request.getRemoteAddr());
+            String userAgent = Optional.ofNullable(request.getHeader("User-Agent")).orElse("unknown");
             logger.warn("Failed login attempt for user '{}' from IP address: {} (User-Agent: {})", finalUsername, ipAddress, userAgent);
 
             LoginAttempts attempt = new LoginAttempts();
@@ -92,6 +100,7 @@ public class SecurityConfig {
             attempt.setUser_agent(userAgent);
             attemptsRepository.save(attempt);
         });
+
         if (requestOptional.isEmpty()) {
             logger.warn("Failed login attempt for user '{}' (IP and User-Agent not available)", username);
         }
@@ -108,11 +117,8 @@ public class SecurityConfig {
         Optional<HttpServletRequest> requestOptional = getCurrentHttpRequest();
         String finalUsername = username;
         requestOptional.ifPresent(request -> {
-            String ipAddress = request.getHeader("X-Forwarded-For");
-            if (ipAddress == null || ipAddress.isEmpty()) {
-                ipAddress = request.getRemoteAddr();
-            }
-            String userAgent = request.getHeader("User-Agent");
+            String ipAddress = Optional.ofNullable(request.getHeader("X-Forwarded-For")).orElse(request.getRemoteAddr());
+            String userAgent = Optional.ofNullable(request.getHeader("User-Agent")).orElse("unknown");
             logger.info("Successful login for user '{}' from IP address: {} (User-Agent: {})", finalUsername, ipAddress, userAgent);
 
             LoginAttempts attempt = new LoginAttempts();
@@ -128,15 +134,12 @@ public class SecurityConfig {
         }
     }
 
-
-
     private Optional<HttpServletRequest> getCurrentHttpRequest() {
         return Optional.ofNullable(RequestContextHolder.getRequestAttributes())
                 .filter(ServletRequestAttributes.class::isInstance)
                 .map(ServletRequestAttributes.class::cast)
                 .map(ServletRequestAttributes::getRequest);
     }
-
 
     @Bean
     @ConditionalOnMissingBean(UserDetailsService.class)
@@ -152,126 +155,30 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // Development
-
-    @Configuration
-    @Profile("development")
-    public class DevelopmentSecurityConfig {
-        @Bean
-        @ConditionalOnMissingBean(AuthenticationEventPublisher.class)
-        DefaultAuthenticationEventPublisher defaultAuthenticationEventPublisher(ApplicationEventPublisher delegate) {
-            return new DefaultAuthenticationEventPublisher(delegate);
-        }
-
-        @Bean
-        SecurityFilterChain configure(HttpSecurity http) throws Exception {
-            http
-                    .csrf(AbstractHttpConfigurer::disable)
-                    .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                    .authorizeHttpRequests(auth ->
-                            auth
-                                    .requestMatchers("/api/categories/all").permitAll()
-                                    .requestMatchers("/api/categories/**").hasRole("ADMIN")
-                                    .requestMatchers("/api/upload/**").hasRole("ADMIN")
-                                    .requestMatchers("/api/jobs/**").hasRole("ADMIN")
-                                    .requestMatchers("/api/photos/category/**").permitAll()
-                                    .requestMatchers("/api/photos/**").permitAll()
-                                    .requestMatchers("/api/photos/delete/**").hasRole("ADMIN")
-                                    .requestMatchers("/api/actuator/**").hasRole("ADMIN")
-                                    .anyRequest().authenticated()
-                    )
-                    .addFilterBefore(new UsernamePasswordAuthenticationFilter(authenticationManager), UsernamePasswordAuthenticationFilter.class)
-                    .httpBasic(withDefaults());
-            return http.build();
-        }
-
-        @Bean
-        CorsConfigurationSource corsConfigurationSource() {
-            logger.info("WEB URL === {}", webUrl);
-            CorsConfiguration configuration = new CorsConfiguration();
-            configuration.setAllowedOrigins(Arrays.asList(webUrl));
-            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-            configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
-            configuration.setAllowCredentials(true);
-
-            UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-            source.registerCorsConfiguration("/**", configuration);
-            return source;
-        }
-    }
-
-    // Production
-
-    @Configuration
-    @Profile("production")
-    public class ProductionSecurityConfig {
-        @Bean
-        @ConditionalOnMissingBean(AuthenticationEventPublisher.class)
-        DefaultAuthenticationEventPublisher defaultAuthenticationEventPublisher(ApplicationEventPublisher delegate) {
-            return new DefaultAuthenticationEventPublisher(delegate);
-        }
-
-        @Bean
-        SecurityFilterChain configure(HttpSecurity http) throws Exception {
-            http
-                    .csrf(AbstractHttpConfigurer::disable)
-                    .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                    .authorizeHttpRequests(auth ->
-                            auth
-                                    .requestMatchers("/api/categories/all").permitAll()
-                                    .requestMatchers("/api/categories/**").hasRole("ADMIN")
-                                    .requestMatchers("/api/upload/**").hasRole("ADMIN")
-                                    .requestMatchers("/api/jobs/**").hasRole("ADMIN")
-                                    .requestMatchers("/api/photos/category/**").permitAll()
-                                    .requestMatchers("/api/photos/**").permitAll()
-                                    .requestMatchers("/api/photos/delete/**").hasRole("ADMIN")
-                                    .requestMatchers("/api/actuator/**").hasRole("ADMIN")
-                                    .anyRequest().authenticated()
-                    )
-                    .httpBasic(withDefaults());
-            return http.build();
-        }
-
-        @Bean
-        CorsConfigurationSource corsConfigurationSource() {
-            logger.info("WEB URL === {}", webUrl);
-            logger.info("We're in production now!");
-            CorsConfiguration configuration = new CorsConfiguration();
-            configuration.setAllowedOrigins(Arrays.asList(webUrl));
-            configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-            configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
-            configuration.setAllowCredentials(true);
-
-            UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-            source.registerCorsConfiguration("/**", configuration);
-            return source;
-        }
-    }
-
     private class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
-
+        private final AttemptsRepository attemptsRepository;
         private final AuthenticationManager authenticationManager;
+        private final long maxAttempts;
 
-        public CustomAuthenticationFilter(AuthenticationManager authenticationManager) {
+        public CustomAuthenticationFilter(AuthenticationManager authenticationManager, AttemptsRepository attemptsRepository, long maxAttempts) {
+            this.attemptsRepository = attemptsRepository;
             this.authenticationManager = authenticationManager;
+            this.maxAttempts = maxAttempts;
         }
 
         @Override
         public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-            String ipAddress = request.getHeader("X-Forwarded-For");
-            if (ipAddress == null || ipAddress.isEmpty()) {
-                ipAddress = request.getRemoteAddr();
-            }
+            String ipAddress = Optional.ofNullable(request.getHeader("X-Forwarded-For")).orElse(request.getRemoteAddr());
             long currentTime = System.currentTimeMillis();
 
-            // Check the number of failed attempts within the last 24 hours for this IP address
             long failedAttempts = attemptsRepository.countFailedAttempts(ipAddress, currentTime - 60 * 60 * 24 * 1000);
-            if (failedAttempts >= 5) {
-                response.setStatus(429); // too many requests
+            if (failedAttempts >= maxAttempts) {
+                response.setStatus(429);
+                response.setContentType("application/json");
                 try {
-                    response.getWriter().write("Too many failed login attempts. Please try again later.");
+                    response.getWriter().write("{\"error\": \"Too many failed login attempts. Please try again later.\"}");
                 } catch (IOException e) {
-                    return null; // TODO better.
+                    logger.error("Error writing rate-limit response", e);
                 }
                 return null;
             }
@@ -282,5 +189,4 @@ public class SecurityConfig {
             return authenticationManager.authenticate(authRequest);
         }
     }
-
 }
