@@ -101,7 +101,6 @@ public class SecurityConfig {
                                 .requestMatchers("/api/photos/delete/**").hasRole("ADMIN")
                                 .anyRequest().authenticated()
                 )
-                .httpBasic(httpBasic -> httpBasic.authenticationEntryPoint(authenticationEntryPoint()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
