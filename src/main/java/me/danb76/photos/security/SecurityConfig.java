@@ -94,7 +94,7 @@ public class SecurityConfig {
                                 .requestMatchers("/api/categories/all").permitAll()
                                 .requestMatchers("/api/photos/category/**").permitAll()
                                 .requestMatchers("/api/photos/**").permitAll()
-                                .requestMatchers("/api/auth/protected").authenticated()
+                                .requestMatchers("/api/auth/protected").permitAll()
                                 .requestMatchers("/api/actuator/**").hasRole("ADMIN")
                                 .requestMatchers("/api/categories/**").hasRole("ADMIN")
                                 .requestMatchers("/api/upload/**").hasRole("ADMIN")
