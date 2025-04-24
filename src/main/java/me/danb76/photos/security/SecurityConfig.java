@@ -85,7 +85,7 @@ public class SecurityConfig {
     public SecurityFilterChain configure(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository)
-                        .ignoringRequestMatchers("/api/categories/all", "/api/photos/category/**", "/api/photos/**", "/api/auth/login", "/api/auth/logout")
+                        .ignoringRequestMatchers("/api/categories/all", "/api/photos/category/**", "/api/photos/{categoryId}", "/api/auth/**", "/api/upload/**")
                 )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .authorizeHttpRequests(auth ->
