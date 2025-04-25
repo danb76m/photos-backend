@@ -22,9 +22,9 @@ FROM debian:stable-slim
 # Set the working directory for the production image
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y openjdk-17-jdk
+RUN apt-get update && apt-get install -y openjdk-24-jdk
 
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
 ENV PATH="${PATH}:${JAVA_HOME}/bin"
 
 # Install dcraw and ImageMagick
