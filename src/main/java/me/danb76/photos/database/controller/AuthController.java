@@ -2,6 +2,7 @@ package me.danb76.photos.database.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import me.danb76.photos.database.repositories.AttemptsRepository;
 import me.danb76.photos.database.tables.LoginAttempts;
 import org.slf4j.Logger;
@@ -65,8 +66,13 @@ public class AuthController {
         try {
             UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(username, password);
             Authentication authentication = authenticationManager.authenticate(authRequest);
-            SecurityContext securityContext = SecurityContextHolder.getContext();
+            SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
             securityContext.setAuthentication(authentication);
+            SecurityContextHolder.setContext(securityContext);
+
+            HttpSession session = request.getSession(true);
+            session.setAttribute("SPRING_SECURITY_CONTEXT", securityContext);
+            logger.debug("Login: Session ID after authentication: {}", session.getId());
 
             logger.info("Successful login for user '{}' from IP {} with User Agent {}", username, ipAddress, userAgent);
             LoginAttempts attempt = new LoginAttempts();
@@ -122,14 +128,23 @@ public class AuthController {
 
     @GetMapping("/protected")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> protectedResource() {
+    public ResponseEntity<Map<String, Object>> protectedResource(HttpServletRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        HttpSession session = request.getSession(false);
+        String sessionId = (session != null) ? session.getId() : "No session";
+        logger.debug("Protected: Session ID for request: {}", sessionId);
+
         if (authentication != null && authentication.isAuthenticated()) {
             String username = authentication.getName();
+            logger.debug("Protected: Authentication principal name: {}", username);
+            logger.debug("Protected: Authentication authorities: {}", authentication.getAuthorities());
 
-            if (username.equals("anonymousUser")) {
-                return unauthorised();
+            /*
+                        if (username.equals("anonymousUser")) {
+                logger.warn("Protected: User is authenticated but principal is anonymousUser.");
+                return unauthorised(username);
             }
+             */
 
             Map<String, Object> responseBody = new HashMap<>();
             responseBody.put("message", "Access granted");
@@ -137,13 +152,15 @@ public class AuthController {
             responseBody.put("authorities", authentication.getAuthorities());
             return ResponseEntity.ok(responseBody);
         } else {
-            return unauthorised();
+            logger.warn("Protected: No authenticated principal found.");
+            return unauthorised(null);
         }
     }
 
-    private ResponseEntity<Map<String, Object>> unauthorised() {
+    private ResponseEntity<Map<String, Object>> unauthorised(String username) {
         Map<String, Object> errorResponse = new HashMap<>();
         errorResponse.put("message", "Unauthorized");
+        errorResponse.put("username", username);
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
     }
 
