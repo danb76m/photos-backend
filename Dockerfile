@@ -22,6 +22,12 @@ FROM eclipse-temurin:21-jre-alpine
 # Set the working directory for the production image
 WORKDIR /app
 
+# Install dcraw and ImageMagick
+RUN apk update && apk add --no-cache \
+    dcraw \
+    imagemagick \
+    bash
+
 # Copy the JAR file from the build stage
 COPY --from=builder /app/build/libs/*.jar app.jar
 
