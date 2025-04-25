@@ -127,10 +127,6 @@ public class AuthController {
         if (authentication != null && authentication.isAuthenticated()) {
             String username = authentication.getName();
 
-            if (username.equals("anonymousUser")) {
-                return unauthorised();
-            }
-
             Map<String, Object> responseBody = new HashMap<>();
             responseBody.put("message", "Access granted");
             responseBody.put("username", username);
