@@ -17,13 +17,13 @@ RUN gradle build --no-daemon
 
 # ----------------------------------------------------
 # Stage 2: Create the production image
-FROM eclipse-temurin:21-jre-alpine
+FROM debian:stable-slim
 
 # Set the working directory for the production image
 WORKDIR /app
 
 # Install dcraw and ImageMagick
-RUN apk update && apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     dcraw \
     imagemagick \
     bash
