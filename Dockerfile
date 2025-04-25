@@ -17,14 +17,14 @@ RUN gradle build --no-daemon
 
 # ----------------------------------------------------
 # Stage 2: Create the production image
-FROM debian:stable-slim
+FROM ubuntu:24.10 as production
 
 # Set the working directory for the production image
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y openjdk-24-jdk
+RUN apt-get update && apt-get install -y openjdk-23-jdk
 
-ENV JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-23-openjdk-amd64
 ENV PATH="${PATH}:${JAVA_HOME}/bin"
 
 # Install dcraw and ImageMagick
